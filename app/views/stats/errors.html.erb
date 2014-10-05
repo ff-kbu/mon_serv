@@ -17,8 +17,8 @@
 <% defs.each_pair do |name,interval| %>
 <p>
   <b><%= name %></b><br />
-	<img src="<%= @node_stat_path(@node,'error')%>/<%=if_name%>.png?secs=<%=interval%>&width=400&height=150" />
-	<img src="<%= @node_stat_path(@node,'error')%>/<%=if_name%>.png?secs=<%=interval%>&width=400&height=150" />
+	<img src="<%= node_stat_path(@node,'error')%>/<%=if_name%>.png?secs=<%=interval%>&width=400&height=150" />
+	<img src="<%= node_stat_path(@node,'error')%>/<%=if_name%>.png?secs=<%=interval%>&width=400&height=150" />
 
 </p>
 
