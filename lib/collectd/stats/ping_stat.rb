@@ -11,7 +11,7 @@ class Collectd::Stats::PingStat < Collectd::Stats::GraphBase
 
   def initialize(node,conf,name,stat_params)
     super
-    base_prefix = conf['dir'] + "/ping/ping"
+    base_prefix = conf_value(['dir'])
     address = conf_value(['address'])
     
     self.drop_rrd = "#{base_prefix}_droprate-#{address}"
