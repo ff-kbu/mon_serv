@@ -17,8 +17,8 @@
 <% defs.each_pair do |name,interval| %>
 <p>
   <b><%= name %></b><br />
-	<img src="/nodes/<%= @node.id %>/stats/interface/octets-<%=if_name%>.png?secs=<%=interval%>&width=400&height=150" />
-	<img src="/nodes/<%= @node.id %>/stats/interface/packets-<%=if_name%>.png?secs=<%=interval%>&width=400&height=150" />
+	<img src="<%= @node_stat_path(@node,'interface')%>/octets-<%=if_name%>.png?secs=<%=interval%>&width=400&height=150" />
+	<img src="<%= @node_stat_path(@node,'interface')%>//packets-<%=if_name%>.png?secs=<%=interval%>&width=400&height=150" />
 
 </p>
 
