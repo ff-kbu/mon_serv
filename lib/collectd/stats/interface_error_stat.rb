@@ -1,4 +1,4 @@
-class InterfaceErrorStat < GraphBase
+class Collectd::Stats::InterfaceErrorStat < Collectd::Stats::GraphBase
   include SimpleRRD
   attr_accessor :collectd_node
 

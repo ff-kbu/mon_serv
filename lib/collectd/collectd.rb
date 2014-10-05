@@ -1,6 +1,6 @@
 require 'erb'
 # Serves as A FASCADE 
-class Collectd
+class Collectd::Collectd
   
   # For now, one collectd instance is supported, only
   # Empty Constructor, now settings for collectd
@@ -10,14 +10,14 @@ class Collectd
   
   # Factory-Method
   def stat(collectd_node,type,name,stat_params)
-    g_class = Collectd.config['stats'][type]['type'].constantize
-    stat = g_class.new(collectd_node,Collectd.config['stats'][type],name,stat_params)
+    g_class = ("Collectd::Stats::"+Collectd::Collectd.config['stats'][type]['type']).constantize
+    stat = g_class.new(collectd_node,Collectd::Collectd.config['stats'][type],name,stat_params)
   end
  
   
   def set_ping_hosts(addresses)
-    template_filename = Collectd.config['ping']['template']
-    config_filename = Collectd.config['ping']['path']
+    template_filename = Collectd::Collectd.config['ping']['template']
+    config_filename = Collectd::Collectd.config['ping']['path']
     File.open(config_filename,'w') do |file|
       file.flock(File::LOCK_EX)
       File.open(template_filename, "r") do |t_f|
@@ -28,6 +28,8 @@ class Collectd
     end
     system Collectd.config['reload_cmd'] #Execute reload
   end
+
+
 
   # Hardwire all MACs in order to avoid NS-pacekts
   def write_mac_list(macs_by_ll)
@@ -41,9 +43,8 @@ class Collectd
     end
   end
 
-  private
   def self.config
-    @@collectd_conf ||= YAML::load_file("#{Rails.root}/config/app.yml")['collectd']
+    @@config ||= YAML::load_file("#{Rails.root}/config/app.yml")['collectd']
   end
   
 end

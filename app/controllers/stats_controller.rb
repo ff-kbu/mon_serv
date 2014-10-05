@@ -13,8 +13,8 @@ class StatsController < ApplicationController
     end
 
     node_scope.each do |node|
-      collectd_node = CollectdNode.new(node.id_hex,node.link_local_address)
-      stat = conf.stat(collectd_node,"ping",nil)
+      collectd_node = node.to_collectd_node
+      stat = conf.stat(collectd_node,"ping",nil,nil)
       begin 
         result = stat.all_stats(start_t,end_t,interval)
         index = 1 # Not 0! -> = 0 will introduce off by one error, since starting at f_start means, the that first value is available at start+interval
@@ -29,28 +29,38 @@ class StatsController < ApplicationController
       end
     end
     respond_to do |format|
-      format.json {render json: data.to_json}
+      format.json {render json: daat.to_json}
     end
   end
   
-  def index
-    @node = Node.find(params[:node_id])
-    conf = Collectd.new
-    collectd_node = CollectdNode.new(@node.link_local_address, @node.id_hex)
-    @stats = conf.supported_stats    
-    
-    respond_to do |format|
-      format.html
-      format.json do
-        stat_map = @stats.map {|s| {plugin: s.plugin, name: s.name, rrd: conf.rrd_path(s.plugin,s.name,collectd_node)}}
-        render json: stat_map.to_json
+  def all
+    conf = Collectd::Collectd.new
+    result = {}
+    Node.all.each do |n|
+      result[n.id_hex] = {
+        ping: {},
+        stations: {}
+      }
+      begin
+        result[n.id_hex][:ping] = conf.stat(n.to_collectd_node,'ping',nil,nil).summary 
+      rescue Exception => e
+        logger.warn "Unable to build ping statistics for #{n.inspect}: #{e.inspect}"
       end
-    end  
+
+      IwinfoStat.interfaces(n.to_collectd_node).each do |iface|
+        begin
+          result[n.id_hex][:stations][iface] = conf.stat(n.to_collectd_node,'iwinfo',nil,{'iface' => iface}).summary
+        rescue Exception => e
+          logger.warn "Unable to build iwinfo statistics for #{n.inspect}: #{e.inspect}"
+        end
+      end
+    end
+    render json: result.to_json
   end
   
   
   def show
-    conf = Collectd.new
+    conf = Collectd::Collectd.new
     @node = Node.find(params[:node_id])
     secs = (params[:secs] || 3600).to_i
     name = params[:name]
@@ -59,14 +69,22 @@ class StatsController < ApplicationController
     width = params[:width] || 600
     height = params[:height] || 200
     no_summary = params[:no_summary]
-    stat_params = params[:stat]
-    cn = CollectdNode.new(@node.id_hex,@node.link_local_address)
-    @stat = conf.stat(cn,id,name,stat_params)    
+    @stat_params = params[:stat]
+    cn = @node.to_collectd_node
     respond_to do |format|
       format.png do 
-        send_data @stat.create_graph(width,height,secs,no_summary), :type => 'image/png',:disposition => 'inline'
+        stat = conf.stat(cn,id,name,@stat_params)
+        send_data stat.create_graph(width,height,secs,no_summary), :type => 'image/png',:disposition => 'inline'
       end
-      format.html { render action: id}
+      # try building stat object - may not succeed - to few parameters atm ...
+      format.html do 
+        begin
+          @stat = conf.stat(cn,id,name,@stat_params)
+        rescue Exception => e
+          logger.info "Unable to construct stat object for debugging purpose #{e.inspect} - don't panic"
+        end
+        render action: id 
+      end
     end
   end
 end

@@ -1,4 +1,4 @@
-class InterfaceRxTxStat < GraphBase
+class Collectd::Stats::InterfaceRxTxStat < Collectd::Stats::GraphBase
   include SimpleRRD
   attr_accessor :collectd_node
 

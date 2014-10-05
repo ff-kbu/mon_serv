@@ -1,7 +1,7 @@
 require 'errand'
 require "RRD"
 
-class PingStat < GraphBase
+class Collectd::Stats::PingStat < Collectd::Stats::GraphBase
   include SimpleRRD
   
 
@@ -9,8 +9,6 @@ class PingStat < GraphBase
   attr_accessor :rtt_rrd
   
 
- 
-  
   def initialize(node,conf,name,stat_params)
     super
     base_prefix = conf['dir'] + "/ping/ping"
@@ -22,8 +20,6 @@ class PingStat < GraphBase
     check_rrd_readable(self.rtt_rrd)
     
   end
- 
-  
   
   def all_stats(start_t,end_t,interval)
     (fstart, fend, data, step) = RRD.fetch(self.rtt_rrd, 
@@ -31,6 +27,13 @@ class PingStat < GraphBase
       "--end", end_t.to_s, 
       "--resolution", interval.to_s,"AVERAGE")
     {fstart: fstart, fend: fend, data: data, step: step}
+  end
+  
+  def summary
+    {
+      loss_5_min: self.loss_5_min,
+      rtt_5_min: self.rtt_5_min
+    }
   end
 
   # Early collectd: ping
@@ -42,7 +45,6 @@ class PingStat < GraphBase
     @ping_ds_name 
   end
 
-  
   def loss_5_min
     rrd = Errand.new(:filename => drop_rrd)
     result = rrd.fetch(:start => (Time.now - 300).to_i.to_s) #5 min back
@@ -60,9 +62,9 @@ class PingStat < GraphBase
   
   
   def create_graph(width,height,end_time,no_summary)
-      ds_name = self.ping_ds_name
       drop_rrd = self.drop_rrd
       rtt_rrd = self.rtt_rrd
+      ping_ds_name = self.ping_ds_name
       graph = FancyGraph.build do
 #        title pingGDef.name if pingGDef.name
         width width
@@ -80,7 +82,7 @@ class PingStat < GraphBase
 
         drops = Def.new(:rrdfile => drop_rrd, :ds_name => 'value', :cf => 'AVERAGE')
         drops_pct = CDef.new(:rpn_expression => [100, drops, '*'])
-        timing = Def.new(:rrdfile => rtt_rrd, :ds_name=>ds_name, :cf => 'AVERAGE')
+        timing = Def.new(:rrdfile => rtt_rrd, :ds_name=> ping_ds_name, :cf => 'AVERAGE')
 
         timing_99pct = VDef.new(:rpn_expression => [timing, 99, "PERCENT"])
         drops_99pct = VDef.new(:rpn_expression => [drops_pct, 99, "PERCENT"])
